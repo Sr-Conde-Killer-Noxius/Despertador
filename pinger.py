@@ -37,7 +37,7 @@ def health_check():
 # --- INÍCIO DA LÓGICA DE PING ROBUSTA ---
 
 URLS_TO_PING = {
-    "N8N Automations": "https://n8n-automations-64do.onrender.com/webhook/a591ac5b-ecbd-430b-9929-2b9f49ef57a7",
+    "N8N Automations": "https://n8n-automations-64do.onrender.com/webhook/579b6a9f-2840-4e12-9308-f34e0ab399c6",
     "Evolution API": "https://evolution-api-lpf9.onrender.com/"
 }
 
