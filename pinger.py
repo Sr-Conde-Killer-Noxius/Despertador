@@ -47,7 +47,7 @@ def pinger_task():
         for name, url in URLS_TO_PING.items():
             try:
                 print(f"[PINGER] Requisitando para '{name}'...")
-                response = requests.get(url, timeout=30)
+                response = requests.post(url, timeout=30)
                 print(f"[PINGER] Resposta de '{name}': Status {response.status_code}")
             except Exception as e:
                 print(f"[ERRO] Falha inesperada ao pingar '{name}': {e}")
