@@ -2,44 +2,40 @@ import requests
 import time
 import os
 import random
+import gc  # Importa o Garbage Collector (Coletor de Lixo)
 from flask import Flask, jsonify
 from threading import Thread
 
 # --- VARIÁVEL GLOBAL PARA MONITORAMENTO ---
-# Armazena o timestamp do último ciclo de ping bem-sucedido
 last_successful_ping_loop = time.time()
 
-
-# --- INÍCIO DA LÓGICA DO SERVIDOR WEB APRIMORADA ---
-
+# --- LÓGICA DO SERVIDOR WEB APRIMORADA ---
 app = Flask(__name__)
 
 @app.route('/')
 def health_check():
     global last_successful_ping_loop
-    # Calcula há quanto tempo o último ping ocorreu
     seconds_since_last_ping = time.time() - last_successful_ping_loop
     
-    # Se o último ping ocorreu há mais de 11 minutos (660s), algo está errado.
-    # O máximo normal seria 10 minutos (600s) + tempo de requisição.
     if seconds_since_last_ping > 660:
-        # Retorna um erro 503 (Serviço Indisponível)
-        # Isso fará com que o Render veja o serviço como "unhealthy"
         response = jsonify(status="unhealthy", pinger_thread_status="stopped_responding", seconds_since_last_ping=seconds_since_last_ping)
         response.status_code = 503
         return response
     
     return jsonify(status="ok", pinger_thread_status="running", seconds_since_last_ping=seconds_since_last_ping)
 
-# --- FIM DA LÓGICA DO SERVIDOR WEB ---
-
-
-# --- INÍCIO DA LÓGICA DE PING ROBUSTA ---
-
+# --- LÓGICA DE PING ROBUSTA E INTELIGENTE ---
 URLS_TO_PING = {
-    "N8N Automations": "https://n8n-automations-64do.onrender.com/webhook/579b6a9f-2840-4e12-9308-f34e0ab399c6",
+    "N8N Automations": "https://n8n-automations-64do.onrender.com/webhook-test/5898b4bd-79ba-4da0-a415-f3d8c521cc82",
     "Evolution API": "https://evolution-api-lpf9.onrender.com/"
 }
+
+# MELHORIA 1: Lógica de "Autoping" (Self-Ping)
+# Render define esta variável de ambiente com a URL pública do serviço
+RENDER_EXTERNAL_URL = os.environ.get('RENDER_EXTERNAL_URL')
+if RENDER_EXTERNAL_URL:
+    URLS_TO_PING["Self (Pinger)"] = RENDER_EXTERNAL_URL
+    print(f"[INFO] Autoping habilitado para: {RENDER_EXTERNAL_URL}")
 
 def pinger_task():
     global last_successful_ping_loop
@@ -53,14 +49,16 @@ def pinger_task():
                 print(f"[PINGER] Requisitando para '{name}'...")
                 response = requests.get(url, timeout=30)
                 print(f"[PINGER] Resposta de '{name}': Status {response.status_code}")
-            # MELHORIA 1: Captura QUALQUER erro durante a requisição, não só de rede
             except Exception as e:
                 print(f"[ERRO] Falha inesperada ao pingar '{name}': {e}")
         
         print("-"*40)
         
-        # Atualiza o timestamp para mostrar que o ciclo foi concluído com sucesso
         last_successful_ping_loop = time.time()
+        
+        # MELHORIA 2: Gerenciamento Explícito de Memória
+        gc.collect()
+        print("[INFO] Limpeza de memória realizada.")
         
         sleep_time_seconds = random.randint(60, 600)
         total_minutes = sleep_time_seconds / 60
@@ -72,7 +70,6 @@ def pinger_task():
                 print(f"[TIMER] Contando... {minutos_passados:.0f} de ~{total_minutes:.0f} minutos se passaram.")
             time.sleep(1)
 
-# MELHORIA 2: Loop de "Supervisor" para garantir que o pinger nunca pare
 def run_pinger_supervisor():
     while True:
         try:
@@ -82,13 +79,8 @@ def run_pinger_supervisor():
             print("[SUPERVISOR] REINICIANDO A TAREFA EM 60 SEGUNDOS...")
             time.sleep(60)
 
-# --- FIM DA LÓGICA DE PING ---
-
-
 # --- INICIALIZAÇÃO ---
-
 if __name__ == "__main__":
-    # Inicia a thread com o SUPERVISOR, não a tarefa diretamente
     pinger_thread = Thread(target=run_pinger_supervisor)
     pinger_thread.daemon = True
     pinger_thread.start()
