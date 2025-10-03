@@ -26,7 +26,7 @@ def health_check():
 
 # --- LÓGICA DE PING ROBUSTA E INTELIGENTE ---
 URLS_TO_PING = {
-    "N8N Automations": "https://n8n-automations-64do.onrender.com/webhook-test/5898b4bd-79ba-4da0-a415-f3d8c521cc82",
+    "N8N Automations": "https://n8n-automations-64do.onrender.com/webhook/5898b4bd-79ba-4da0-a415-f3d8c521cc82",
     "Evolution API": "https://evolution-api-lpf9.onrender.com/"
 }
 
