@@ -2,14 +2,15 @@ import requests
 import time
 import os
 import random
-import gc  # Importa o Garbage Collector (Coletor de Lixo)
+import gc
 from flask import Flask, jsonify
 from threading import Thread
+from waitress import serve
 
 # --- VARIÁVEL GLOBAL PARA MONITORAMENTO ---
 last_successful_ping_loop = time.time()
 
-# --- LÓGICA DO SERVIDOR WEB APRIMORADA ---
+# --- LÓGICA DO SERVIDOR WEB ---
 app = Flask(__name__)
 
 @app.route('/')
@@ -25,16 +26,18 @@ def health_check():
     return jsonify(status="ok", pinger_thread_status="running", seconds_since_last_ping=seconds_since_last_ping)
 
 # --- LÓGICA DE PING ROBUSTA E INTELIGENTE ---
+
+# AJUSTE 1: Configuração do método HTTP para cada URL
 URLS_TO_PING = {
-    "N8N Automations": "https://n8n-automations-64do.onrender.com/webhook/5898b4bd-79ba-4da0-a415-f3d8c521cc82",
-    "Evolution API": "https://evolution-api-lpf9.onrender.com/"
+    # Formato: "Nome do Serviço": ("MÉTODO", "URL")
+    "N8N Automations": ("POST", "https://n8n-automations-64do.onrender.com/webhook/5898b4bd-79ba-4da0-a415-f3d8c521cc82"),
+    "Evolution API": ("GET", "https://evolution-api-lpf9.onrender.com/")
 }
 
-# MELHORIA 1: Lógica de "Autoping" (Self-Ping)
-# Render define esta variável de ambiente com a URL pública do serviço
 RENDER_EXTERNAL_URL = os.environ.get('RENDER_EXTERNAL_URL')
 if RENDER_EXTERNAL_URL:
-    URLS_TO_PING["Self (Pinger)"] = RENDER_EXTERNAL_URL
+    # O autoping deve usar o método GET
+    URLS_TO_PING["Self (Pinger)"] = ("GET", RENDER_EXTERNAL_URL)
     print(f"[INFO] Autoping habilitado para: {RENDER_EXTERNAL_URL}")
 
 def pinger_task():
@@ -44,10 +47,16 @@ def pinger_task():
         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Iniciando nova rodada de pings...")
         print("="*40)
 
-        for name, url in URLS_TO_PING.items():
+        # AJUSTE 2: Lógica para usar o método HTTP correto para cada requisição
+        for name, (method, url) in URLS_TO_PING.items():
             try:
-                print(f"[PINGER] Requisitando para '{name}'...")
-                response = requests.post(url, timeout=30)
+                print(f"[PINGER] Requisitando para '{name}' com método {method}...")
+                
+                if method == "POST":
+                    response = requests.post(url, timeout=30)
+                else: # Assume GET para todos os outros casos
+                    response = requests.get(url, timeout=30)
+
                 print(f"[PINGER] Resposta de '{name}': Status {response.status_code}")
             except Exception as e:
                 print(f"[ERRO] Falha inesperada ao pingar '{name}': {e}")
@@ -56,7 +65,6 @@ def pinger_task():
         
         last_successful_ping_loop = time.time()
         
-        # MELHORIA 2: Gerenciamento Explícito de Memória
         gc.collect()
         print("[INFO] Limpeza de memória realizada.")
         
@@ -85,6 +93,5 @@ if __name__ == "__main__":
     pinger_thread.daemon = True
     pinger_thread.start()
 
-    from waitress import serve
     port = int(os.environ.get("PORT", 5000))
     serve(app, host='0.0.0.0', port=port)
