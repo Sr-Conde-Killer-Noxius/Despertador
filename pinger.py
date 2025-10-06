@@ -30,7 +30,7 @@ def health_check():
 # AJUSTE 1: Configuração do método HTTP para cada URL
 URLS_TO_PING = {
     # Formato: "Nome do Serviço": ("MÉTODO", "URL")
-    "N8N Automations": ("POST", "https://n8n-automations-64do.onrender.com/webhook/5898b4bd-79ba-4da0-a415-f3d8c521cc82"),
+    "N8N Automations": ("POST", "https://n8n-automations-64do.onrender.com/webhook/0d392286-37b6-4433-a9da-c75ebc63b6d3"),
     "Evolution API": ("GET", "https://evolution-api-lpf9.onrender.com/")
 }
 
